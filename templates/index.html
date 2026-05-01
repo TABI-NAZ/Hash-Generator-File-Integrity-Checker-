@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HashGuard — File Integrity & Hash Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #06080f;
+  --bg2:      #0c1020;
+  --bg3:      #111827;
+  --glass:    rgba(255,255,255,0.04);
+  --glass2:   rgba(255,255,255,0.07);
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #e2e8f8;
+  --muted:    #5a6a8a;
+  --violet:   #7c3aed;
+  --violet2:  #a78bfa;
+  --cyan:     #06b6d4;
+  --cyan2:    #67e8f9;
+  --green:    #10b981;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --outfit:   'Outfit', sans-serif;
+  --mono:     'Fira Code', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--outfit);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Deep space background ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(124,58,237,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(6,182,212,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,185,129,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Stars */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5%  90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 85%, rgba(255,255,255,0.4) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+/* ── NAV ── */
+nav {
+  padding: 24px 0 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 18px; font-weight: 800; letter-spacing: -0.02em;
+}
+.logo-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  box-shadow: 0 0 20px rgba(124,58,237,0.4);
+}
+.logo span { color: var(--violet2); }
+.nav-pill {
+  font-family: var(--mono); font-size: 10px;
+  padding: 5px 12px; border-radius: 999px;
+  border: 1px solid rgba(124,58,237,0.3);
+  color: var(--violet2);
+  background: rgba(124,58,237,0.08);
+  letter-spacing: 0.06em;
+}
+
+/* ── HERO ── */
+.hero { padding: 64px 0 48px; text-align: center; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--cyan2); letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 24px;
+  padding: 6px 16px; border-radius: 999px;
+  background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2);
+}
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+h1 {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 800; line-height: 1.08;
+  letter-spacing: -0.03em; margin-bottom: 18px;
+}
+.grad { background: linear-gradient(135deg, var(--violet2) 0%, var(--cyan2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p {
+  font-size: 16px; color: var(--muted); max-width: 520px;
+  margin: 0 auto 48px; line-height: 1.8; font-weight: 300;
+}
+
+/* ── FEATURE PILLS ── */
+.feature-row {
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 56px;
+}
+.feat-pill {
+  font-family: var(--mono); font-size: 11px;
+  padding: 6px 14px; border-radius: 6px;
+  background: var(--glass); border: 1px solid var(--border2);
+  color: var(--text); letter-spacing: 0.04em;
+}
+
+/* ── TABS ── */
+.mode-tabs {
+  display: flex; gap: 4px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 4px;
+  margin-bottom: 24px;
+}
+.mode-btn {
+  flex: 1; padding: 11px 16px;
+  font-family: var(--outfit); font-size: 13px; font-weight: 600;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); border-radius: 9px;
+  transition: all 0.2s; letter-spacing: 0.01em;
+}
+.mode-btn.active {
+  background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2));
+  color: var(--text);
+  border: 1px solid rgba(124,58,237,0.3);
+  box-shadow: 0 2px 12px rgba(124,58,237,0.15);
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── GLASS CARD ── */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+.glass-card:hover { border-color: rgba(124,58,237,0.25); }
+
+.card-top {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.card-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+  flex-shrink: 0;
+}
+.card-title { font-size: 14px; font-weight: 700; }
+.card-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 1px; }
+.card-body { padding: 24px; }
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 1.5px dashed rgba(124,58,237,0.35);
+  border-radius: 12px; padding: 44px 24px;
+  text-align: center; cursor: pointer;
+  transition: all 0.25s; position: relative;
+  background: rgba(124,58,237,0.03);
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--violet2);
+  background: rgba(124,58,237,0.07);
+  box-shadow: 0 0 30px rgba(124,58,237,0.1);
+}
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 40px; margin-bottom: 12px; display: block; }
+.drop-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.drop-note { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.file-selected {
+  margin-top: 16px; padding: 12px 16px;
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 8px; font-family: var(--mono); font-size: 12px; color: var(--green);
+  display: none;
+}
+
+/* ── INPUTS ── */
+.input-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.inp-group { flex: 1; min-width: 200px; }
+.inp-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 7px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+input[type="text"], textarea, select {
+  width: 100%; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2); border-radius: 8px;
+  padding: 10px 14px; color: var(--text);
+  font-family: var(--mono); font-size: 12px; outline: none;
+  transition: border-color 0.2s;
+}
+input[type="text"]:focus, textarea:focus, select:focus { border-color: rgba(124,58,237,0.5); }
+textarea { min-height: 140px; resize: vertical; line-height: 1.7; }
+select option { background: var(--bg3); }
+
+/* ── SCAN BTN ── */
+.scan-btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--violet), #5b21b6);
+  color: white; border: none; border-radius: 10px;
+  font-family: var(--outfit); font-size: 14px; font-weight: 700;
+  letter-spacing: 0.04em; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+  transition: all 0.2s; margin-top: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.scan-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(124,58,237,0.45); }
+.scan-btn:active { transform: translateY(0); }
+.scan-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.scan-btn.cyan-btn { background: linear-gradient(135deg, #0891b2, #06b6d4); box-shadow: 0 4px 20px rgba(6,182,212,0.35); }
+.scan-btn.cyan-btn:hover { box-shadow: 0 8px 28px rgba(6,182,212,0.45); }
+
+/* ── ERROR ── */
+.err-box {
+  display: none; margin-top: 12px; padding: 12px 16px;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px; font-family: var(--mono); font-size: 12px; color: var(--red);
+}
+
+/* ── PROGRESS ── */
+#prog-section {
+  display: none;
+  background: var(--glass); border: 1px solid var(--border2);
+  border-radius: 16px; padding: 28px; margin-bottom: 20px;
+}
+.prog-txt {
+  font-family: var(--mono); font-size: 11px; color: var(--cyan2);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.prog-txt::before { content: '▶'; font-size: 8px; }
+.prog-bar-wrap { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
+.prog-bar { height: 100%; background: linear-gradient(90deg, var(--violet), var(--cyan)); width: 0%; transition: width 0.5s ease; border-radius: 2px; }
+.prog-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.prog-chip {
+  font-family: var(--mono); font-size: 10px; padding: 4px 12px;
+  border-radius: 999px; border: 1px solid var(--border2);
+  color: var(--muted); transition: all 0.25s; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.prog-chip.on { border-color: var(--violet); color: var(--violet2); background: rgba(124,58,237,0.1); box-shadow: 0 0 12px rgba(124,58,237,0.2); }
+.prog-chip.ok { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.08); }
+
+/* ── RESULTS ── */
+#results { display: none; padding-bottom: 80px; }
+
+/* Threat banner */
+.threat-banner {
+  border-radius: 14px; padding: 22px 28px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 20px;
+  animation: slideUp 0.4s ease;
+}
+.threat-CLEAN    { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); }
+.threat-VERIFIED { background: rgba(6,182,212,0.08);  border: 1px solid rgba(6,182,212,0.25); }
+.threat-WARNING  { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+.threat-SUSPICIOUS { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+.threat-DANGER   { background: rgba(239,68,68,0.12); border: 2px solid var(--red); box-shadow: 0 0 30px rgba(239,68,68,0.15); }
+
+.threat-icon { font-size: 36px; flex-shrink: 0; }
+.threat-info { flex: 1; }
+.threat-label { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3px; }
+.threat-reason { font-family: var(--mono); font-size: 12px; opacity: 0.7; }
+.threat-score { text-align: right; }
+.threat-score .score-num { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.threat-score .score-lbl { font-family: var(--mono); font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* Layout */
+.res-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+@media(max-width: 680px) { .res-grid { grid-template-columns: 1fr; } .mode-tabs { flex-direction: column; } }
+
+/* Hash table */
+.hash-table { width: 100%; border-collapse: collapse; }
+.hash-table tr { border-bottom: 1px solid var(--border); }
+.hash-table tr:last-child { border: none; }
+.hash-table td { padding: 13px 20px; vertical-align: middle; }
+.hash-algo {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  white-space: nowrap;
+}
+.hash-val {
+  font-family: var(--mono); font-size: 11px; color: var(--cyan2);
+  word-break: break-all; line-height: 1.5;
+}
+.hash-rating {
+  white-space: nowrap;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.rating-safe   { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+.rating-danger { background: rgba(239,68,68,0.1);  color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+.hash-bits { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.copy-btn {
+  background: none; border: 1px solid var(--border2); border-radius: 5px;
+  color: var(--muted); cursor: pointer; padding: 4px 10px;
+  font-family: var(--mono); font-size: 10px; transition: all 0.15s;
+  white-space: nowrap;
+}
+.copy-btn:hover { border-color: var(--violet2); color: var(--violet2); }
+
+/* Info card rows */
+.info-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 11px 20px; border-bottom: 1px solid var(--border); gap: 12px;
+}
+.info-row:last-child { border: none; }
+.info-key { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
+.info-val { font-family: var(--mono); font-size: 12px; text-align: right; word-break: break-all; }
+
+/* Entropy bar */
+.entropy-wrap { padding: 16px 20px; }
+.entropy-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.entropy-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.entropy-val { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.entropy-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.entropy-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.entropy-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+/* Verify result */
+.verify-result {
+  border-radius: 12px; padding: 20px 24px; margin-top: 20px;
+  animation: slideUp 0.3s ease;
+}
+.verify-match    { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); }
+.verify-mismatch { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.3); }
+.verify-label { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.verify-detail { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.8; }
+
+/* Compare table */
+.compare-table { width: 100%; border-collapse: collapse; }
+.compare-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 10px 20px; text-align: left; border-bottom: 1px solid var(--border); }
+.compare-table td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; }
+.compare-table tr:last-child td { border: none; }
+.match-tag { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.match-yes { background: rgba(16,185,129,0.12); color: var(--green); }
+.match-no  { background: rgba(239,68,68,0.1);  color: var(--red); }
+
+/* HMAC box */
+.hmac-box {
+  background: rgba(6,182,212,0.05); border: 1px solid rgba(6,182,212,0.2);
+  border-radius: 10px; padding: 16px 20px; margin-top: 16px;
+}
+.hmac-label { font-family: var(--mono); font-size: 10px; color: var(--cyan2); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.hmac-val { font-family: var(--mono); font-size: 12px; word-break: break-all; color: var(--cyan2); line-height: 1.5; }
+
+/* Text result */
+.text-result .hash-val { font-size: 12px; }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.anim { animation: slideUp 0.35s ease; }
+
+footer {
+  text-align: center; padding: 28px 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  margin-top: 40px; position: relative; z-index: 1;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    Hash<span>Guard</span>
+  </div>
+  <span class="nav-pill">FILE INTEGRITY INTELLIGENCE</span>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag"><div class="pulse"></div>Cryptographic Hash Engine — 6 Algorithms</div>
+  <h1>Verify. <span class="grad">Authenticate.</span><br>Trust nothing blindly.</h1>
+  <p>Generate cryptographic hashes, verify file integrity, detect tampering, and analyze files for suspicious entropy — the same techniques used by forensic investigators and security teams worldwide.</p>
+  <div class="feature-row">
+    <span class="feat-pill">MD5 · SHA1 · SHA256 · SHA512 · SHA3 · BLAKE2b</span>
+    <span class="feat-pill">File Integrity Verification</span>
+    <span class="feat-pill">HMAC Authentication</span>
+    <span class="feat-pill">Entropy Analysis</span>
+    <span class="feat-pill">Multi-File Compare</span>
+    <span class="feat-pill">Malware Detection</span>
+  </div>
+</div>
+
+<!-- MODE TABS -->
+<div class="mode-tabs">
+  <button class="mode-btn active" onclick="setMode('hash')">🔐 Hash Generator</button>
+  <button class="mode-btn" onclick="setMode('text')">📝 Hash Text</button>
+  <button class="mode-btn" onclick="setMode('verify')">✅ Verify Integrity</button>
+  <button class="mode-btn" onclick="setMode('compare')">⚖️ Compare Files</button>
+</div>
+
+<!-- ═══ PANEL 1: HASH FILE ═══ -->
+<div class="panel active" id="panel-hash">
+  <div class="glass-card">
+    <div class="card-top">
+      <div class="card-icon" style="background:rgba(124,58,237,0.15)">📂</div>
+      <div>
+        <div class="card-title">File Hash Generator</div>
+        <div class="card-sub">Upload any file — get SHA256, SHA512, MD5, BLAKE2b and more instantly</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone" id="dz1">
+        <input type="file" id="f1" onchange="onFile1(this)"/>
+        <span class="drop-icon">📦</span>
+        <div class="drop-title">Drop any file here</div>
+        <div class="drop-note">Documents, executables, archives, source code — up to 50MB</div>
+      </div>
+      <div class="file-selected" id="f1-info"></div>
+      <div class="input-row" style="margin-top:16px">
+        <div class="inp-group">
+          <label>HMAC Secret Key (optional)</label>
+          <input type="text" id="hmac-key" placeholder="Enter secret key for HMAC-SHA256..."/>
+        </div>
+      </div>
+      <button class="scan-btn" id="btn1" onclick="doHashFile()" disabled>
+        <span>⚡</span> Generate All Hashes
+      </button>
+      <div class="err-box" id="err1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL 2: HASH TEXT ═══ -->
+<div class="panel" id="panel-text">
+  <div class="glass-card">
+    <div class="card-top">
+      <div class="card-icon" style="background:rgba(6,182,212,0.15)">✏️</div>
+      <div>
+        <div class="card-title">Text Hash Generator</div>
+        <div class="card-sub">Hash any string — passwords, messages, data — across 6 algorithms</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="inp-group" style="margin-bottom:16px">
+        <label>Text / String to Hash</label>
+        <textarea id="textInput" placeholder="Type anything here...&#10;&#10;Examples:&#10;• A password: mypassword123&#10;• A message: Hello World&#10;• A document fingerprint&#10;• Any sensitive data"></textarea>
+      </div>
+      <button class="scan-btn cyan-btn" onclick="doHashText()">
+        <span>🔑</span> Hash This Text
+      </button>
+      <div class="err-box" id="err2"></div>
+    </div>
+  </div>
+  <div id="text-results"></div>
+</div>
+
+<!-- ═══ PANEL 3: VERIFY ═══ -->
+<div class="panel" id="panel-verify">
+  <div class="glass-card">
+    <div class="card-top">
+      <div class="card-icon" style="background:rgba(16,185,129,0.15)">🔍</div>
+      <div>
+        <div class="card-title">File Integrity Verifier</div>
+        <div class="card-sub">Upload a file + paste its official hash — verify if it was tampered with</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone" id="dz3" style="margin-bottom:16px">
+        <input type="file" id="f3" onchange="onFile3(this)"/>
+        <span class="drop-icon">🔎</span>
+        <div class="drop-title">Upload file to verify</div>
+        <div class="drop-note">e.g. a downloaded installer, document, or archive</div>
+      </div>
+      <div class="file-selected" id="f3-info"></div>
+      <div class="input-row">
+        <div class="inp-group">
+          <label>Expected Hash Value</label>
+          <input type="text" id="expected-hash" placeholder="Paste the official hash here e.g. a3f1b2c4d5..."/>
+        </div>
+        <div class="inp-group" style="max-width:160px">
+          <label>Algorithm</label>
+          <select id="verify-algo">
+            <option value="sha256">SHA-256</option>
+            <option value="sha512">SHA-512</option>
+            <option value="md5">MD5</option>
+            <option value="sha1">SHA-1</option>
+            <option value="sha3_256">SHA3-256</option>
+            <option value="blake2b">BLAKE2b</option>
+          </select>
+        </div>
+      </div>
+      <button class="scan-btn" style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 4px 20px rgba(16,185,129,0.3)" onclick="doVerify()">
+        <span>✅</span> Verify Integrity
+      </button>
+      <div class="err-box" id="err3"></div>
+      <div id="verify-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL 4: COMPARE ═══ -->
+<div class="panel" id="panel-compare">
+  <div class="glass-card">
+    <div class="card-top">
+      <div class="card-icon" style="background:rgba(245,158,11,0.15)">⚖️</div>
+      <div>
+        <div class="card-title">Multi-File Comparator</div>
+        <div class="card-sub">Upload 2-4 files — instantly detect identical copies or tampering</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone" id="dz4">
+        <input type="file" id="f4" multiple onchange="onFile4(this)"/>
+        <span class="drop-icon">📊</span>
+        <div class="drop-title">Drop 2 to 4 files</div>
+        <div class="drop-note">Hold Ctrl/Cmd to select multiple files</div>
+      </div>
+      <div class="file-selected" id="f4-info"></div>
+      <button class="scan-btn" style="background:linear-gradient(135deg,#b45309,#f59e0b);box-shadow:0 4px 20px rgba(245,158,11,0.3)" id="btn4" onclick="doCompare()" disabled>
+        <span>⚡</span> Compare Files
+      </button>
+      <div class="err-box" id="err4"></div>
+      <div id="compare-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div id="prog-section">
+  <div class="prog-txt" id="prog-txt">Computing hashes...</div>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+  <div class="prog-chips">
+    <span class="prog-chip" id="pc-read">Reading File</span>
+    <span class="prog-chip" id="pc-hash">Hashing</span>
+    <span class="prog-chip" id="pc-entropy">Entropy</span>
+    <span class="prog-chip" id="pc-threat">Threat Check</span>
+    <span class="prog-chip" id="pc-done">Complete</span>
+  </div>
+</div>
+
+<!-- RESULTS (File Hash) -->
+<div id="results">
+
+  <div class="threat-banner" id="threatBanner"></div>
+
+  <div class="res-grid">
+    <div>
+      <!-- Hash Table -->
+      <div class="glass-card anim">
+        <div class="card-top">
+          <div class="card-icon" style="background:rgba(124,58,237,0.15)">🔐</div>
+          <div>
+            <div class="card-title">Cryptographic Hashes</div>
+            <div class="card-sub">Click any hash to copy · Green = recommended · Red = deprecated</div>
+          </div>
+        </div>
+        <table class="hash-table" id="hashTable"></table>
+      </div>
+
+      <!-- HMAC -->
+      <div id="hmacResult"></div>
+
+      <!-- Entropy -->
+      <div class="glass-card anim">
+        <div class="card-top">
+          <div class="card-icon" style="background:rgba(6,182,212,0.15)">📊</div>
+          <div><div class="card-title">Entropy Analysis</div></div>
+        </div>
+        <div class="entropy-wrap" id="entropyWrap"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+      <div class="glass-card anim">
+        <div class="card-top">
+          <div class="card-icon" style="background:rgba(16,185,129,0.15)">📋</div>
+          <div><div class="card-title">File Information</div></div>
+        </div>
+        <div id="fileInfo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <div class="wrap">
+    HashGuard — File Integrity Intelligence &nbsp;|&nbsp;
+    MD5 · SHA1 · SHA256 · SHA512 · SHA3-256 · BLAKE2b · HMAC &nbsp;|&nbsp;
+    Built for security professionals & developers
+  </div>
+</footer>
+
+<script>
+// ── STATE ──
+let file1 = null, file3 = null, file4 = [];
+
+function setMode(m) {
+  ['hash','text','verify','compare'].forEach(id => {
+    document.getElementById('panel-'+id).classList.toggle('active', id===m);
+  });
+  document.querySelectorAll('.mode-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['hash','text','verify','compare'][i]===m);
+  });
+  hideResults();
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = '⚠ ' + msg; el.style.display = 'block';
+}
+function hideErr(id) { document.getElementById(id).style.display = 'none'; }
+function hideResults() {
+  document.getElementById('prog-section').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+}
+
+// ── DROP ZONE DRAG ──
+['dz1','dz3','dz4'].forEach(id => {
+  const dz = document.getElementById(id);
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    const files = Array.from(e.dataTransfer.files);
+    if (id==='dz1' && files[0]) { file1=files[0]; showFileInfo('f1-info', [file1]); document.getElementById('btn1').disabled=false; }
+    if (id==='dz3' && files[0]) { file3=files[0]; showFileInfo('f3-info', [file3]); }
+    if (id==='dz4' && files.length) { file4=files.slice(0,4); showFileInfo('f4-info', file4); document.getElementById('btn4').disabled=false; }
+  });
+});
+
+function onFile1(inp) { file1=inp.files[0]; if(file1){showFileInfo('f1-info',[file1]);document.getElementById('btn1').disabled=false;} }
+function onFile3(inp) { file3=inp.files[0]; if(file3){showFileInfo('f3-info',[file3]);} }
+function onFile4(inp) { file4=Array.from(inp.files).slice(0,4); if(file4.length){showFileInfo('f4-info',file4);document.getElementById('btn4').disabled=false;} }
+
+function showFileInfo(id, files) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.textContent = files.map(f => `✅ ${f.name} (${(f.size/1024).toFixed(1)} KB)`).join(' · ');
+}
+
+// ── PROGRESS ──
+function startProg(label) {
+  document.getElementById('prog-section').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('prog-txt').textContent = label;
+  ['read','hash','entropy','threat','done'].forEach(c => {
+    document.getElementById('pc-'+c).className = 'prog-chip';
+  });
+  document.getElementById('prog-bar').style.width = '0%';
+  let i = 0;
+  const chips = ['read','hash','entropy','threat','done'];
+  const labels = ['Reading file...','Computing hashes...','Analyzing entropy...','Checking threats...','Finalizing...'];
+  const iv = setInterval(() => {
+    if (i < chips.length) {
+      document.getElementById('pc-'+chips[i]).className = 'prog-chip on';
+      document.getElementById('prog-txt').textContent = labels[i].toUpperCase();
+      document.getElementById('prog-bar').style.width = ((i+1)/chips.length*80) + '%';
+      if (i > 0) document.getElementById('pc-'+chips[i-1]).className = 'prog-chip ok';
+      i++;
+    }
+  }, 500);
+  return iv;
+}
+function endProg(iv) {
+  clearInterval(iv);
+  document.getElementById('prog-bar').style.width = '100%';
+  ['read','hash','entropy','threat','done'].forEach(c => document.getElementById('pc-'+c).className = 'prog-chip ok');
+  document.getElementById('prog-txt').textContent = 'COMPLETE';
+  setTimeout(() => { document.getElementById('prog-section').style.display = 'none'; }, 600);
+}
+
+// ── HASH FILE ──
+async function doHashFile() {
+  if (!file1) return;
+  hideErr('err1');
+  document.getElementById('btn1').disabled = true;
+  const iv = startProg('HASHING FILE...');
+  const fd = new FormData();
+  fd.append('file', file1);
+  const key = document.getElementById('hmac-key').value;
+  if (key) fd.append('hmac_key', key);
+  try {
+    const res = await fetch('/hash-file', {method:'POST', body:fd});
+    const data = await res.json();
+    endProg(iv);
+    if (data.error) { showErr('err1', data.error); document.getElementById('btn1').disabled=false; return; }
+    setTimeout(() => renderFileResult(data), 700);
+  } catch(e) {
+    endProg(iv);
+    showErr('err1', e.message);
+    document.getElementById('btn1').disabled = false;
+  }
+}
+
+// ── HASH TEXT ──
+async function doHashText() {
+  const text = document.getElementById('textInput').value.trim();
+  if (!text) { showErr('err2','Please enter some text.'); return; }
+  hideErr('err2');
+  try {
+    const res = await fetch('/hash-text', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text})
+    });
+    const data = await res.json();
+    if (data.error) { showErr('err2', data.error); return; }
+    renderTextResult(data);
+  } catch(e) { showErr('err2', e.message); }
+}
+
+// ── VERIFY ──
+async function doVerify() {
+  if (!file3) { showErr('err3','Please upload a file.'); return; }
+  const expected = document.getElementById('expected-hash').value.trim();
+  if (!expected) { showErr('err3','Please paste the expected hash.'); return; }
+  hideErr('err3');
+  const fd = new FormData();
+  fd.append('file', file3);
+  fd.append('expected_hash', expected);
+  fd.append('algorithm', document.getElementById('verify-algo').value);
+  try {
+    const res = await fetch('/verify', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.error) { showErr('err3', data.error); return; }
+    renderVerifyResult(data);
+  } catch(e) { showErr('err3', e.message); }
+}
+
+// ── COMPARE ──
+async function doCompare() {
+  if (file4.length < 2) { showErr('err4','Please upload at least 2 files.'); return; }
+  hideErr('err4');
+  const fd = new FormData();
+  file4.forEach(f => fd.append('files', f));
+  try {
+    const res = await fetch('/compare', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.error) { showErr('err4', data.error); return; }
+    renderCompareResult(data);
+  } catch(e) { showErr('err4', e.message); }
+}
+
+// ── RENDER FILE RESULT ──
+function renderFileResult(d) {
+  document.getElementById('results').style.display = 'block';
+
+  // Threat banner
+  const ti = {CLEAN:'✅',VERIFIED:'🔵',WARNING:'⚠️',SUSPICIOUS:'🔴',DANGER:'☠️'};
+  const tc = {CLEAN:'#10b981',VERIFIED:'#06b6d4',WARNING:'#f59e0b',SUSPICIOUS:'#ef4444',DANGER:'#ef4444'};
+  const tl = d.threat.level;
+  document.getElementById('threatBanner').className = `threat-banner threat-${tl}`;
+  document.getElementById('threatBanner').innerHTML = `
+    <div class="threat-icon">${ti[tl]||'❓'}</div>
+    <div class="threat-info">
+      <div class="threat-label" style="color:${tc[tl]}">${tl} — ${d.filename}</div>
+      <div class="threat-reason">${d.threat.reason}</div>
+    </div>
+    <div class="threat-score">
+      <div class="score-num" style="color:${tc[tl]}">${d.file_size_fmt}</div>
+      <div class="score-lbl">${d.file_type}</div>
+    </div>
+  `;
+
+  // Hash table
+  const order = ['sha256','sha512','sha3_256','blake2b','sha1','md5'];
+  document.getElementById('hashTable').innerHTML = order.map(algo => {
+    const h = d.hashes[algo]; const s = d.strength[algo];
+    return `<tr>
+      <td><div class="hash-algo">${algo.toUpperCase().replace('_','-')}</div><div class="hash-bits">${s.bits}-bit</div></td>
+      <td><div class="hash-val" id="hv-${algo}">${h}</div><div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px">${s.note}</div></td>
+      <td><span class="hash-rating rating-${s.color}">${s.rating}</span></td>
+      <td><button class="copy-btn" data-hash="${h}" data-algo="${algo}">Copy</button></td>
+    </tr>`;
+  }).join('');
+  // Attach copy listeners after rendering
+  document.querySelectorAll('#hashTable .copy-btn').forEach(btn => {
+    btn.addEventListener('click', function() { doCopy(this); });
+  });
+
+  // HMAC
+  if (d.hmac) {
+    document.getElementById('hmacResult').innerHTML = `
+      <div class="glass-card anim">
+        <div class="card-top"><div class="card-icon" style="background:rgba(6,182,212,0.15)">🔑</div>
+          <div><div class="card-title">HMAC-SHA256</div><div class="card-sub">Message Authentication Code using your secret key</div></div></div>
+        <div class="card-body">
+          <div class="hmac-box"><div class="hmac-label">HMAC-SHA256 Digest</div><div class="hmac-val">${d.hmac}</div></div>
+        </div>
+      </div>`;
+  } else { document.getElementById('hmacResult').innerHTML = ''; }
+
+  // Entropy
+  const ep = Math.min(d.entropy / 8 * 100, 100);
+  const ec = d.entropy > 6.8 ? '#ef4444' : d.entropy > 5 ? '#f59e0b' : '#10b981';
+  document.getElementById('entropyWrap').innerHTML = `
+    <div class="entropy-header">
+      <span class="entropy-label">Shannon Entropy</span>
+      <span class="entropy-val" style="color:${ec}">${d.entropy} / 8.0 — ${d.entropy_label}</span>
+    </div>
+    <div class="entropy-track"><div class="entropy-fill" style="width:${ep}%;background:${ec}"></div></div>
+    <div class="entropy-scale"><span>0 (uniform)</span><span>4 (normal text)</span><span>8 (max random)</span></div>
+  `;
+
+  // File info
+  document.getElementById('fileInfo').innerHTML = [
+    ['Filename', d.filename],
+    ['File Type', d.file_type],
+    ['File Size', d.file_size_fmt],
+    ['Byte Count', d.byte_count.toLocaleString()],
+    ['Unique Bytes', `${d.unique_bytes} / 256`],
+    ['Scanned At', d.scanned_at],
+    ['Scan Time', `${d.duration_ms} ms`],
+  ].map(([k,v]) => `
+    <div class="info-row">
+      <span class="info-key">${k}</span>
+      <span class="info-val">${v}</span>
+    </div>`).join('');
+
+  document.getElementById('results').scrollIntoView({behavior:'smooth'});
+  document.getElementById('btn1').disabled = false;
+}
+
+// ── RENDER TEXT RESULT ──
+function renderTextResult(d) {
+  const order = ['sha256','sha512','sha3_256','blake2b','sha1','md5'];
+  document.getElementById('text-results').innerHTML = `
+    <div class="glass-card anim text-result">
+      <div class="card-top">
+        <div class="card-icon" style="background:rgba(6,182,212,0.15)">🔑</div>
+        <div>
+          <div class="card-title">Hash Results</div>
+          <div class="card-sub">Input: "${esc(d.input)}" · ${d.length} characters</div>
+        </div>
+      </div>
+      <table class="hash-table" id="textHashTable">
+        ${order.map(algo => {
+          const h = d.hashes[algo]; const s = d.strength[algo];
+          return `<tr>
+            <td><div class="hash-algo">${algo.toUpperCase().replace('_','-')}</div><div class="hash-bits">${s.bits}-bit</div></td>
+            <td><div class="hash-val">${h}</div></td>
+            <td><span class="hash-rating rating-${s.color}">${s.rating}</span></td>
+            <td><button class="copy-btn" data-hash="${h}" data-algo="${algo}">Copy</button></td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+}
+
+// ── RENDER VERIFY RESULT ──
+function renderVerifyResult(d) {
+  const cls = d.match ? 'verify-match' : 'verify-mismatch';
+  const icon = d.match ? '✅' : '❌';
+  const label = d.match ? 'INTEGRITY VERIFIED — File is authentic' : 'INTEGRITY FAILED — File may be tampered!';
+  const color = d.match ? '#10b981' : '#ef4444';
+  document.getElementById('verify-result').innerHTML = `
+    <div class="verify-result ${cls}">
+      <div class="verify-label" style="color:${color}">${icon} ${label}</div>
+      <div class="verify-detail">
+        Algorithm: ${d.algorithm}<br>
+        Expected:  ${d.expected}<br>
+        Computed:  ${d.computed}<br>
+        File: ${d.filename} · ${d.file_size} · ${d.scanned_at}
+      </div>
+    </div>`;
+}
+
+// ── RENDER COMPARE RESULT ──
+function renderCompareResult(d) {
+  const rows = d.files.map(f => {
+    const isMatch = d.identical_pairs.some(p => p.includes(f.filename));
+    return `<tr>
+      <td>${f.filename}</td>
+      <td>${f.size}</td>
+      <td style="color:var(--cyan2)">${f.sha256.slice(0,24)}...</td>
+      <td>${f.md5.slice(0,16)}...</td>
+      <td><span class="match-tag ${isMatch?'match-yes':'match-no'}">${isMatch?'Has Duplicate':'Unique'}</span></td>
+    </tr>`;
+  }).join('');
+
+  const summary = d.all_unique
+    ? '<div style="color:var(--green);font-family:var(--mono);font-size:13px;padding:12px 0">✅ All files are unique — no duplicates detected</div>'
+    : `<div style="color:var(--amber);font-family:var(--mono);font-size:13px;padding:12px 0">⚠️ Identical pairs: ${d.identical_pairs.map(p=>p.join(' = ')).join(', ')}</div>`;
+
+  document.getElementById('compare-result').innerHTML = `
+    <div class="glass-card anim" style="margin-top:20px">
+      <div class="card-top">
+        <div class="card-icon" style="background:rgba(245,158,11,0.15)">📊</div>
+        <div><div class="card-title">Comparison Results</div><div class="card-sub">${d.scanned_at}</div></div>
+      </div>
+      <div class="card-body">
+        ${summary}
+        <table class="compare-table">
+          <tr><th>Filename</th><th>Size</th><th>SHA-256 (partial)</th><th>MD5 (partial)</th><th>Status</th></tr>
+          ${rows}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── UTILS ──
+function doCopy(btn) {
+  const hash = btn.getAttribute('data-hash');
+  if (!hash) return;
+  navigator.clipboard.writeText(hash).then(() => {
+    btn.textContent = 'Copied! ✓';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  }).catch(() => {
+    // Fallback for browsers that block clipboard
+    const ta = document.createElement('textarea');
+    ta.value = hash;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'Copied! ✓';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+function esc(s) { return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Global delegation for dynamically rendered copy buttons
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('copy-btn') && !e.target._hasListener) {
+    doCopy(e.target);
+  }
+});
+</script>
+</body>
+</html>
